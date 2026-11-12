@@ -136,7 +136,7 @@ def captures_for(board,player):
 
 def list_legal_moves_for_map(board, player):
     pieces = board.get_player_pieces(player)
-    return list(map(lambda x : (x,x.get_move_options()),pieces))
+    return list(map(lambda x : (x,list(x.get_move_options())),pieces))
     # for pc in board.get_player_pieces(player):
     #     for opt in pc.get_move_options():
     #         pairs.append((pc, opt))
@@ -249,6 +249,10 @@ if __name__ == '__main__':
     legals = list_legal_moves_for_map(board, white)
     print(legals)
     print("num of initial moves:",sum(len(m[1]) for m in legals))
+    testps=board.get_player_pieces(white)
+    for testp in testps:
+        print(testp)
+        print(testp.get_move_options())
     starttime = time.perf_counter()
     #board,piece,move = copy_piece_move(board,pms[0][0],pms[0][1])
     #piece.move(move)
@@ -268,7 +272,7 @@ if __name__ == '__main__':
         print("total time in heuristics:",htime)
         print("   attack/material scoring:", amtime)
         print("                           ", str(100*amtime/htime) + "%")
-        print("      legal move finding:  ", lmtime)
-        print("                           ", str(100*lmtime/htime) + "%")
+        print("           legal move finding:", lmtime)
+        print("                              ", str(100*lmtime/htime) + "%")
         print("total time NOT in heuristics:",ttime-htime)
         print("average heuristic time:", str(1000*htime/leaves)+"ms")
