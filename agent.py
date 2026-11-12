@@ -1,6 +1,7 @@
 import math
 import random
 import time
+import multiprocessing as mp
 from itertools import cycle
 from random import shuffle
 
@@ -54,8 +55,8 @@ def agent(board, player, var):
 
 
 
-def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour) -> (int,[piece,move_option]):
-    legal = list_legal_moves_for_map(board, turn)
+def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour,pool) -> (int,[piece,move_option]):
+    legal = list_legal_moves_for_map(board, turn,pool)
     shuffle(legal)
     global leaves
     global culls
@@ -81,7 +82,7 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour) -> (int,[pie
                     tempb = board.clone()
                     tempb, tempp, tempm = copy_piece_move(tempb, p,m)
                     tempp.move(tempm)
-                    ra, rpms = funny_ab_minimax_map(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1)
+                    ra, rpms = funny_ab_minimax_map(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1,pool)
                     val,chosenMove,pms = max((val,chosenMove,pms),(-ra,(p,m),rpms),key=lambda x : x[0])
                     a = max(a,val)
                     if a>=b:
@@ -92,7 +93,7 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour) -> (int,[pie
         #cause it happens
         return a,([(chosenMove[0], chosenMove[1])]+pms)
     else:
-        eh = colour * evalheuristic(board, player, var)
+        eh = colour * evalheuristic(board, player, var,pool)
         return eh, []
 
 
@@ -134,23 +135,22 @@ def captures_for(board,player):
     fs = filter(lambda m : m[1].captures!=set(),ls)
     return fs
 
-def list_legal_moves_for_map(board, player):
+def list_legal_moves_for_map(board, player, pool):
+    # (!) this is still slow. improve
     pieces = board.get_player_pieces(player)
-    return list(map(lambda x : (x,x.get_move_options()),pieces))
-    # for pc in board.get_player_pieces(player):
-    #     for opt in pc.get_move_options():
-    #         pairs.append((pc, opt))
-    # return pairs
+    return list(pool.map(pair_piece_with_moves,pieces))
+def pair_piece_with_moves(piece):
+    return (piece,piece.get_move_options())
 
 
-def evalheuristic(board,player,var):
+def evalheuristic(board,player,var,pool):
     #consider each player's pieces, their worth, and the pieces each player has in danger. perhaps depth of pawns, promotion??
     #consider forks? amount of possible moves?
     global htime
     global amtime
-    s = time.perf_counter()
     global leaves
     global lmtime
+    s = time.perf_counter()
     leaves += 1
     piecepoints = {"Pawn":1, "Right":6, "Knight":3, "Bishop":3, "Queen":9, "King":9}
     #right and king approximated in points
@@ -191,7 +191,7 @@ def evalheuristic(board,player,var):
     a = time.perf_counter()
         #material & attack scoring
     l = time.perf_counter()
-    lpms = list_legal_moves_for_map(board,player)
+    lpms = list_legal_moves_for_map(board,player,pool)
     lmtime += time.perf_counter() - l
     for lpm in lpms:
         p = lpm[0]
@@ -201,7 +201,7 @@ def evalheuristic(board,player,var):
                 score+=piecepoints[board[c].piece.name]
 
     l = time.perf_counter()
-    olpms = list_legal_moves_for_map(board,opponent)
+    olpms = list_legal_moves_for_map(board,opponent,pool)
     lmtime += time.perf_counter() - l
     for lpm in olpms:
         p = lpm[0]
@@ -242,33 +242,33 @@ if __name__ == '__main__':
     global lmtime
     lmtime = 0
     testknight = Knight(white)
-
+    pool = mp.Pool()
     players = [white,black]
     board = chessmaker.chess.base.Board(hellsample,players, cycle(players))
     print_board_ascii(board)
-    legals = list_legal_moves_for_map(board, white)
+    legals = list_legal_moves_for_map(board, white,pool)
     print(legals)
     print("num of initial moves:",sum(len(m[1]) for m in legals))
     starttime = time.perf_counter()
     #board,piece,move = copy_piece_move(board,pms[0][0],pms[0][1])
     #piece.move(move)
     #print_board_ascii(board)
-
-    for i in [3]:
-        d = i
-        starttime = time.perf_counter()
-        h, pms = funny_ab_minimax_map(board, white, white, [d, 100000], -math.inf, math.inf, d, 1)
-        print("----- map ver done -----")
-        print("depth:", d)
-        ttime = time.perf_counter() - starttime
-        print(h, pms)
-        print("leaves:", leaves)
-        print("culls:", culls)
-        print("thinking time:", ttime)
-        print("total time in heuristics:",htime)
-        print("   attack/material scoring:", amtime)
-        print("                           ", str(100*amtime/htime) + "%")
-        print("      legal move finding:  ", lmtime)
-        print("                           ", str(100*lmtime/htime) + "%")
-        print("total time NOT in heuristics:",ttime-htime)
-        print("average heuristic time:", str(1000*htime/leaves)+"ms")
+    d = 3
+    starttime = time.perf_counter()
+    h, pms = funny_ab_minimax_map(board, white, white, [d, 100000], -math.inf, math.inf, d, 1,pool)
+    pool.close()
+    print("----- map ver done -----")
+    print("depth:", d)
+    ttime = time.perf_counter() - starttime
+    print(h, pms)
+    print("leaves:", leaves)
+    print("culls:", culls)
+    print("thinking time:", ttime)
+    print("total time in heuristics:",htime)
+    print("   attack/material scoring:", amtime)
+    print("                           ", str(100*amtime/htime) + "%")
+    print("      legal move finding:  ", lmtime)
+    print("                           ", str(100*lmtime/htime) + "%")
+    print("                     avg:  ", str(1000*lmtime/leaves)+"ms")
+    print("total time NOT in heuristics:",ttime-htime)
+    print("average heuristic time:", str(1000*htime/leaves)+"ms")
