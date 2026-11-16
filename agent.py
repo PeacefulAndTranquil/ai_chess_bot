@@ -1,5 +1,6 @@
 import math
 import random
+import sys
 import time
 from itertools import cycle
 from operator import truediv
@@ -82,7 +83,7 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour) -> (int,[pie
 
         for lpm in legal:
             p=lpm[0]
-            if lpm[1] and time.perf_counter() <= var[2]-0.5:
+            if (lpm[1] and time.perf_counter() <= var[2]-0.5) or ("pydevd" in sys.modules):
                 val = -math.inf
                 shuffle(lpm[1])
                 for m in lpm[1]:
@@ -91,7 +92,7 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour) -> (int,[pie
                     tempb, tempp, tempm = copy_piece_move(tempb, p,m)
                     tempp.move(tempm)
                     ra, rpms = funny_ab_minimax_map(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1)
-                    val,chosenMove,pms = max((val,chosenMove,pms),(-ra,(p,m),rpms),key=lambda x : x[0])
+                    val,chosenMove,pms = max((-ra,(p,m),rpms),(val,chosenMove,pms),key=lambda x : x[0])
                     a = max(a,val)
                     if a>=b:
                         return a,([(p,m)]+pms)
@@ -204,7 +205,6 @@ def evalheuristic(board,player,var):
     return score
 
 if __name__ == '__main__':
-
     global leaves
     leaves = 0
     global culls
