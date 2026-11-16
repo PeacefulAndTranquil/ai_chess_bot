@@ -54,6 +54,15 @@ justaqueens = [
         [Square(),Square(),Square(),Square(),Square()],
         [Square(),Square(),Square(),Square(),Square()],
 ]
+
+failsample = [
+[Square(Knight(black)),Square(Queen(black)),Square(),Square(),Square()],
+[Square(),Square(Pawn_Q(white)),Square(King(black)),Square(),Square()],
+[Square(Pawn_Q(black)),Square(Pawn_Q(black)),Square(Pawn_Q(white)),Square(),Square(Pawn_Q(black))],
+[Square(),Square(),Square(Bishop(black)),Square(),Square(Pawn_Q(white))],
+[Square(),Square(),Square(),Square(),Square(King(white))]
+]
+
 def string2board(s):
         s=s.replace("[o","[Square()")
         s=s.replace(",o",",Square()")
@@ -90,3 +99,11 @@ if __name__ == "__main__":
         ps = b.get_player_pieces(white)
         for p in ps:
                 print(p)
+        funny = ("[\n"
+                 "[n,q,o,o,o],\n"
+                 "[o,P,k,o,o],\n"
+                 "[p,p,P,o,p],\n"
+                 "[o,o,b,o,P],\n"
+                 "[o,o,o,o,K]\n"
+                 "]")
+        print(string2board(funny))
