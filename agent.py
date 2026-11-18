@@ -1,14 +1,16 @@
 import math
 import random
+import sys
 import time
 import multiprocessing as mp
 from itertools import cycle
+from operator import truediv
 from random import shuffle
 
 from chessmaker.chess.pieces import *
 from chessmaker.chess.results import checkmate, stalemate
 
-from samples import white,black,sample0, sample1,hellsample
+from samples import white,black,sample0, sample1,hellsample,failsample
 from chessmaker.chess.base import MoveOption, move_option, piece, Piece, Player, Position, player
 from opponent import opponent
 from extension.board_utils import list_legal_moves_for, take_notes, copy_piece_move, print_board_ascii
@@ -42,14 +44,17 @@ def agent(board, player, var):
     """
     piece, move_opt = None, None
     print(f"Ply: {var[0]}")
+    take_notes("\n----- ply " + str(var[0]) + " -----")
+    global test
+    test = False
+
     s = time.perf_counter()
-    if player.name == "white":
-        abm = funny_ab_minimax_map(board,white,white,var,-math.inf,math.inf,3,1)
-        #print(abm)
-        piece, move_opt = abm[1][0]
-    else:
-        piece, move_opt = funny_ab_minimax_map(board,black,black,var,-math.inf,math.inf,3,1)[1][0]
-    take_notes("\n----- ply"+str(var[0])+"-----")
+    depth = 3
+    customvar = [var[0],var[1],time.perf_counter()+var[1],depth]
+
+    abm = funny_ab_minimax_map(board,player,player,customvar,-math.inf,math.inf,depth,1)
+    take_notes("heuristic val: " + str(abm[0]))
+    piece, move_opt = abm[1][0]
     take_notes("thought for:"+str(time.perf_counter()-s))
     return piece, move_opt
 
@@ -60,8 +65,7 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour,pool) -> (int
     shuffle(legal)
     global leaves
     global culls
-    #shuffle(legal)
-    #print(depth)
+    global test
     if turn.name == "white":
         nextturn = black
     else:
@@ -72,61 +76,27 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour,pool) -> (int
     if (legal!=[]) & (depth > 0):
         chosenMove = None, None
         pms = []
+
+
         for lpm in legal:
             p=lpm[0]
             if lpm[1]:
                 val = -math.inf
                 shuffle(lpm[1])
                 for m in lpm[1]:
-                    #piece.move(move_option)
                     tempb = board.clone()
                     tempb, tempp, tempm = copy_piece_move(tempb, p,m)
                     tempp.move(tempm)
                     ra, rpms = funny_ab_minimax_map(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1,pool)
-                    val,chosenMove,pms = max((val,chosenMove,pms),(-ra,(p,m),rpms),key=lambda x : x[0])
+                    val,chosenMove,pms = max((-ra,(p,m),rpms),(val,chosenMove,pms),key=lambda x : x[0])
                     a = max(a,val)
-                    if a>=b:
-                        culls+=1
+                    if a>=b or (time.perf_counter() >= var[2]-0.5 and not test):
                         return a,([(p,m)]+pms)
-        #print("move:",chosenMove[0],chosenMove[1])
-        #is the null issue caused by improper culling?
-        #cause it happens
-        return a,([(chosenMove[0], chosenMove[1])]+pms)
-    else:
-        eh = colour * evalheuristic(board, player, var,pool)
-        return eh, []
-
-
-def funny_ab_minimax(board, player, turn, var,a,b,depth,colour) -> (int,[piece,move_option]):
-    legal = list_legal_moves_for(board, turn)
-    #print(depth)
-    if turn.name == "white":
-        nextturn = black
-    else:
-        nextturn = white
-
-    #print_board_ascii(board)
-
-    if (legal!=[]) & (depth > 0):
-        chosenMove = None, None
-        pms = []
-        for l in legal:
-            #piece.move(move_option)
-            tempb = board.clone()
-            tempb, tempp, tempm = copy_piece_move(tempb, l[0],l[1])
-            tempp.move(tempm)
-            ra, rpms = funny_ab_minimax(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1)
-            a = max(a,-ra)
-            if a == -ra:
-                chosenMove = l
-                pms = rpms
-            if a>=b:
-                return a,([(l[0],l[1])]+pms)
-        print(chosenMove)
         return a,([(chosenMove[0], chosenMove[1])]+pms)
     else:
         eh = colour * evalheuristic(board, player, var)
         return eh, []
+
 
 
 
@@ -146,12 +116,14 @@ def pair_piece_with_moves(piece):
 def evalheuristic(board,player,var,pool):
     #consider each player's pieces, their worth, and the pieces each player has in danger. perhaps depth of pawns, promotion??
     #consider forks? amount of possible moves?
+
     global htime
     global amtime
+    s = time.perf_counter()
     global leaves
     global lmtime
-    s = time.perf_counter()
-    leaves += 1
+    global test
+    #leaves += 1
     piecepoints = {"Pawn":1, "Right":6, "Knight":3, "Bishop":3, "Queen":9, "King":9}
     #right and king approximated in points
     #right does not exist in normal chess
@@ -164,56 +136,20 @@ def evalheuristic(board,player,var,pool):
         opponent = board.players[0]
     score = 0
 
-    #material scoring
-    #maybe get all pieces and do something clever?
-    # ps = list(board.get_player_pieces(player))
-    # for p in ps:
-    #     score += piecepoints[p.name]
-    # ops = list(board.get_player_pieces(opponent))
-    # for p in ops:
-    #     score -= piecepoints[p.name]
-
-    #material & attacks scoring
-    #
-    #this algorithm is very costly - improve it
-    # cs = captures_for(board,player)
-    # for c in cs:
-    #     cps = c[1].captures
-    #     for p in cps:
-    #         score += piecepoints[board[p].piece.name]
-    # ocs = captures_for(board,opponent)
-    # for c in ocs:
-    #     cps = c[1].captures
-    #     for p in cps:
-    #         score -= piecepoints[board[p].piece.name]
-    #
-
-    a = time.perf_counter()
-        #material & attack scoring
-    l = time.perf_counter()
-    lpms = list_legal_moves_for_map(board,player,pool)
-    lmtime += time.perf_counter() - l
-    for lpm in lpms:
-        p = lpm[0]
+    ps = board.get_player_pieces(player)
+    for p in ps:
         score += piecepoints[p.name]
-        for m in lpm[1]:
+        for m in p.get_move_options():
             for c in m.captures:
-                score+=piecepoints[board[c].piece.name]
-
-    l = time.perf_counter()
-    olpms = list_legal_moves_for_map(board,opponent,pool)
-    lmtime += time.perf_counter() - l
-    for lpm in olpms:
-        p = lpm[0]
+                score += piecepoints[board[c].piece.name]
+    ops = board.get_player_pieces(opponent)
+    for p in ops:
         score -= piecepoints[p.name]
-        for m in lpm[1]:
+        for m in p.get_move_options():
             for c in m.captures:
-                score-=piecepoints[board[c].piece.name]
-    amtime += time.perf_counter() - a
+                score -= piecepoints[board[c].piece.name]
 
-    # for l in filter(lambda x : x[1].captures!=set(),ls):
-    #     for m in l[1].captures:
-    #         score += piecepoints[board[m].piece.name]
+
     #pawn depth scoring
 
 
@@ -226,11 +162,10 @@ def evalheuristic(board,player,var,pool):
         score += 1000
     if stalemate(board):
         score -= 500
-    htime += time.perf_counter() - s
+    #htime += time.perf_counter() - s
     return score
 
 if __name__ == '__main__':
-
     global leaves
     leaves = 0
     global culls
@@ -241,7 +176,8 @@ if __name__ == '__main__':
     amtime = 0
     global lmtime
     lmtime = 0
-    testknight = Knight(white)
+    global test
+    test = True
     pool = mp.Pool()
     players = [white,black]
     board = chessmaker.chess.base.Board(hellsample,players, cycle(players))
