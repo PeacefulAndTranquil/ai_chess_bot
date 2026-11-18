@@ -43,16 +43,17 @@ def agent(board, player, var):
     """
     piece, move_opt = None, None
     print(f"Ply: {var[0]}")
+    take_notes("\n----- ply " + str(var[0]) + " -----")
+    global test
+    test = False
+
     s = time.perf_counter()
     depth = 3
     customvar = [var[0],var[1],time.perf_counter()+var[1],depth]
-    if player.name == "white":
-        abm = funny_ab_minimax_map(board,white,white,customvar,-math.inf,math.inf,depth,1)
-        #print(abm)
-        piece, move_opt = abm[1][0]
-    else:
-        piece, move_opt = funny_ab_minimax_map(board,black,black,customvar,-math.inf,math.inf,depth,1)[1][0]
-    take_notes("\n----- ply"+str(var[0])+"-----")
+
+    abm = funny_ab_minimax_map(board,player,player,customvar,-math.inf,math.inf,depth,1)
+    take_notes("heuristic val: " + str(abm[0]))
+    piece, move_opt = abm[1][0]
     take_notes("thought for:"+str(time.perf_counter()-s))
     return piece, move_opt
 
@@ -63,8 +64,7 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour) -> (int,[pie
     shuffle(legal)
     global leaves
     global culls
-    #shuffle(legal)
-    #print(depth)
+    global test
     if turn.name == "white":
         nextturn = black
     else:
@@ -76,32 +76,21 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour) -> (int,[pie
         chosenMove = None, None
         pms = []
 
-        #PANIC CLAUSE MAKE THIS GOOD LATER ITERATIVE DEPTH OR WHATEVER
-        # if (time.perf_counter() >= var[2]-1) and (depth!=var[3]):
-        #     print("PANIC")
-        #     return -math.inf, None
 
         for lpm in legal:
             p=lpm[0]
-            if (lpm[1] and time.perf_counter() <= var[2]-0.5) or ("pydevd" in sys.modules):
+            if lpm[1]:
                 val = -math.inf
                 shuffle(lpm[1])
                 for m in lpm[1]:
-                    #piece.move(move_option)
                     tempb = board.clone()
                     tempb, tempp, tempm = copy_piece_move(tempb, p,m)
                     tempp.move(tempm)
                     ra, rpms = funny_ab_minimax_map(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1)
                     val,chosenMove,pms = max((-ra,(p,m),rpms),(val,chosenMove,pms),key=lambda x : x[0])
                     a = max(a,val)
-                    if a>=b:
+                    if a>=b or (time.perf_counter() >= var[2]-0.5 and not test):
                         return a,([(p,m)]+pms)
-            else:
-                if time.perf_counter() >= var[2]:
-                    take_notes("funny_ab_minimax_map: PANIC!")
-        #print("move:",chosenMove[0],chosenMove[1])
-        #is the null issue caused by improper culling?
-        #cause it happens
         return a,([(chosenMove[0], chosenMove[1])]+pms)
     else:
         eh = colour * evalheuristic(board, player, var)
@@ -118,24 +107,18 @@ def captures_for(board,player):
 def list_legal_moves_for_map(board, player):
     pieces = board.get_player_pieces(player)
     return list(map(lambda x : (x,list(x.get_move_options())),pieces))
-    # for pc in board.get_player_pieces(player):
-    #     for opt in pc.get_move_options():
-    #         pairs.append((pc, opt))
-    # return pairs
 
 
 def evalheuristic(board,player,var):
     #consider each player's pieces, their worth, and the pieces each player has in danger. perhaps depth of pawns, promotion??
     #consider forks? amount of possible moves?
-    if time.perf_counter() > var[2]-0.5:
-        take_notes("evalheuristic: PANIC!")
-        return -math.inf
 
     global htime
     global amtime
     s = time.perf_counter()
     global leaves
     global lmtime
+    global test
     #leaves += 1
     piecepoints = {"Pawn":1, "Right":6, "Knight":3, "Bishop":3, "Queen":9, "King":9}
     #right and king approximated in points
@@ -148,28 +131,6 @@ def evalheuristic(board,player,var):
     else:
         opponent = board.players[0]
     score = 0
-
-    # a = time.perf_counter()
-    #     #material & attack scoring
-    # l = time.perf_counter()
-    # lpms = list_legal_moves_for_map(board,player)
-    # lmtime += time.perf_counter() - l
-    # for lpm in lpms:
-    #     p = lpm[0]
-    #     score += piecepoints[p.name]
-    #     for m in lpm[1]:
-    #         for c in m.captures:
-    #             score+=piecepoints[board[c].piece.name]
-    # l = time.perf_counter()
-    # olpms = list_legal_moves_for_map(board, opponent)
-    # lmtime += time.perf_counter() - l
-    # for lpm in olpms:
-    #     p = lpm[0]
-    #     score -= piecepoints[p.name]
-    #     for m in lpm[1]:
-    #         for c in m.captures:
-    #             score -= piecepoints[board[c].piece.name]
-    # amtime += time.perf_counter() - a
 
     ps = board.get_player_pieces(player)
     for p in ps:
@@ -185,10 +146,6 @@ def evalheuristic(board,player,var):
                 score -= piecepoints[board[c].piece.name]
 
 
-
-    # for l in filter(lambda x : x[1].captures!=set(),ls):
-    #     for m in l[1].captures:
-    #         score += piecepoints[board[m].piece.name]
     #pawn depth scoring
 
 
@@ -215,6 +172,8 @@ if __name__ == '__main__':
     amtime = 0
     global lmtime
     lmtime = 0
+    global test
+    test = True
 
     players = [white,black]
     board = chessmaker.chess.base.Board(failsample,players, cycle(players))

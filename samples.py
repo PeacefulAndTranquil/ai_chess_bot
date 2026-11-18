@@ -63,6 +63,17 @@ failsample = [
 [Square(),Square(),Square(),Square(),Square(King(white))]
 ]
 
+timeoutsample = [
+[Square(),Square(Queen(black)),Square(King(black)),Square(),Square(Right(black))],
+[Square(Pawn_Q(black)),Square(),Square(Knight(black)),Square(Pawn_Q(black)),Square()],
+[Square(Pawn_Q(white)),Square(Bishop(black)),Square(),Square(),Square(Pawn_Q(white))],
+[Square(),Square(Pawn_Q(black)),Square(Bishop(white)),Square(),Square(Pawn_Q(black))],
+[Square(),Square(King(white)),Square(),Square(Queen(white)),Square()]
+]
+
+
+
+
 def string2board(s):
         s=s.replace("[o","[Square()")
         s=s.replace(",o",",Square()")
@@ -100,10 +111,10 @@ if __name__ == "__main__":
         for p in ps:
                 print(p)
         funny = ("[\n"
-                 "[n,q,o,o,o],\n"
-                 "[o,P,k,o,o],\n"
-                 "[p,p,P,o,p],\n"
-                 "[o,o,b,o,P],\n"
-                 "[o,o,o,o,K]\n"
+                 "[o,q,k,o,r],\n"
+                 "[p,o,n,p,o],\n"
+                 "[P,b,o,o,P],\n"
+                 "[o,p,B,o,p],\n"
+                 "[o,K,o,Q,o]\n"
                  "]")
         print(string2board(funny))
