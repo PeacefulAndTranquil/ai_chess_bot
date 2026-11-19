@@ -3,14 +3,14 @@ import random
 import sys
 import time
 import multiprocessing as mp
-from itertools import cycle
+from itertools import cycle, repeat
 from operator import truediv
 from random import shuffle
 
 from chessmaker.chess.pieces import *
 from chessmaker.chess.results import checkmate, stalemate
 
-from samples import white,black,sample0, sample1,hellsample,failsample
+from samples import *
 from chessmaker.chess.base import MoveOption, move_option, piece, Piece, Player, Position, player
 from opponent import opponent
 from extension.board_utils import list_legal_moves_for, take_notes, copy_piece_move, print_board_ascii
@@ -59,7 +59,12 @@ def agent(board, player, var):
     return piece, move_opt
 
 
-
+def board_piece_move_eval (info,move):
+    board,piece,player,colour = info
+    tempb = board.clone()
+    tempb, tempp, tempm = copy_piece_move(tempb, piece, move)
+    tempp.move(tempm)
+    return colour*evalheuristic(tempb,player),(piece,move)
 def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour,pool) -> (int,[piece,move_option]):
     legal = list_legal_moves_for_map(board, turn,pool)
     shuffle(legal)
@@ -83,21 +88,29 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour,pool) -> (int
             if lpm[1]:
                 val = -math.inf
                 shuffle(lpm[1])
-                for m in lpm[1]:
-                    tempb = board.clone()
-                    tempb, tempp, tempm = copy_piece_move(tempb, p,m)
-                    tempp.move(tempm)
-                    ra, rpms = funny_ab_minimax_map(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1,pool)
-                    val,chosenMove,pms = max((-ra,(p,m),rpms),(val,chosenMove,pms),key=lambda x : x[0])
-                    a = max(a,val)
-                    if a>=b or (time.perf_counter() >= var[2]-0.5 and not test):
-                        return a,([(p,m)]+pms)
+                if depth>1:
+                    for m in lpm[1]:
+                        tempb = board.clone()
+                        tempb, tempp, tempm = copy_piece_move(tempb, p,m)
+                        tempp.move(tempm)
+                        ra, rpms = funny_ab_minimax_map(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1,pool)
+                        val,chosenMove,pms = max((-ra,(p,m),rpms),(val,chosenMove,pms),key=lambda x : x[0])
+                        a = max(a,val)
+                        if a>=b or (time.perf_counter() >= var[2]-0.5 and not test):
+                            return a,([(p,m)]+pms)
+                else:
+                    vs = pool.starmap(board_piece_move_eval,zip(repeat((board,p,player,-1*colour)),lpm[1]))
+                    mv = max(vs+[(val,chosenMove)],key=lambda x : x[0])
+                    val,chosenMove = mv
+                    a = max(a, val)
+                    if a >= b or (time.perf_counter() >= var[2] - 0.5 and not test):
+                        return a, ([chosenMove] + pms)
+
+
         return a,([(chosenMove[0], chosenMove[1])]+pms)
     else:
         eh = colour * evalheuristic(board, player, var)
         return eh, []
-
-
 
 
 def captures_for(board,player):
@@ -113,7 +126,7 @@ def pair_piece_with_moves(piece):
     return (piece,piece.get_move_options())
 
 
-def evalheuristic(board,player,var,pool):
+def evalheuristic(board,player):
     #consider each player's pieces, their worth, and the pieces each player has in danger. perhaps depth of pawns, promotion??
     #consider forks? amount of possible moves?
 
@@ -191,7 +204,7 @@ if __name__ == '__main__':
     #print_board_ascii(board)
     d = 3
     starttime = time.perf_counter()
-    h, pms = funny_ab_minimax_map(board, white, white, [d, 100000], -math.inf, math.inf, d, 1,pool)
+    h, pms = funny_ab_minimax_map(board, white, white, [d, 14, time.perf_counter()+14,d], -math.inf, math.inf, d, 1,pool)
     pool.close()
     print("----- map ver done -----")
     print("depth:", d)
