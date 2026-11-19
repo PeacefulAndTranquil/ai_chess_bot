@@ -189,6 +189,8 @@ if __name__ == '__main__':
     amtime = 0
     global lmtime
     lmtime = 0
+
+    #test without time limits?
     global test
     test = True
     pool = mp.Pool()
@@ -215,9 +217,12 @@ if __name__ == '__main__':
     print("thinking time:", ttime)
     print("total time in heuristics:",htime)
     print("   attack/material scoring:", amtime)
-    print("                           ", str(100*amtime/htime) + "%")
+    #print("                           ", str(100*amtime/htime) + "%")
     print("      legal move finding:  ", lmtime)
-    print("                           ", str(100*lmtime/htime) + "%")
-    print("                     avg:  ", str(1000*lmtime/leaves)+"ms")
+    #print("                           ", str(100*lmtime/htime) + "%")
+    #print("                     avg:  ", str(1000*lmtime/leaves)+"ms")
     print("total time NOT in heuristics:",ttime-htime)
-    print("average heuristic time:", str(1000*htime/leaves)+"ms")
+    #print("average heuristic time:", str(1000*htime/leaves)+"ms")
+
+#18.13, 7.62, 19.43, 10.58, 11.42, 13.92, 7.37, 8.36, 18.76, 11.47
+
