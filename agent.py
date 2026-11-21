@@ -52,9 +52,12 @@ def agent(board, player, var):
 
     s = time.perf_counter()
     depth = 3
-    customvar = [var[0],var[1],time.perf_counter()+var[1],depth]
+    panicmargin = 0.5
+    customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin]
 
     abm = funny_ab_minimax_map(board,player,player,customvar,-math.inf,math.inf,depth,1,pool)
+    pool.close()
+    pool.join()
     take_notes("heuristic val: " + str(abm[0]))
     piece, move_opt = abm[1][0]
     take_notes("thought for:"+str(time.perf_counter()-s))
@@ -62,7 +65,9 @@ def agent(board, player, var):
 
 
 def board_piece_move_eval (info,move):
-    board,piece,player,colour = info
+    board,piece,player,colour,var = info
+    if time.perf_counter() >= var[2] - var[3]:
+        return colour * math.inf * -1, (piece,move)
     tempb = board.clone()
     tempb, tempp, tempm = copy_piece_move(tempb, piece, move)
     tempp.move(tempm)
@@ -98,14 +103,14 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour,pool) -> (int
                         ra, rpms = funny_ab_minimax_map(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1,pool)
                         val,chosenMove,pms = max((-ra,(p,m),rpms),(val,chosenMove,pms),key=lambda x : x[0])
                         a = max(a,val)
-                        if a>=b or (time.perf_counter() >= var[2] - 0.7 and not test):
+                        if a>=b or (time.perf_counter() >= var[2] - var[3] and not test):
                             return a,([(p,m)]+pms)
                 else:
-                    vs = pool.starmap(board_piece_move_eval,zip(repeat((board,p,player,-1*colour)),lpm[1]))
+                    vs = pool.starmap(board_piece_move_eval,zip(repeat((board,p,player,-1*colour,var)),lpm[1]))
                     mv = max(vs+[(val,chosenMove)],key=lambda x : x[0])
                     val,chosenMove = mv
                     a = max(a, val)
-                    if a >= b or (time.perf_counter() >= var[2] - 0.7 and not test):
+                    if a >= b or (time.perf_counter() >= var[2] - var[3] and not test):
                         return a, ([chosenMove] + pms)
 
 
@@ -146,6 +151,9 @@ def evalheuristic(board,player):
     #do mess with these if it's bad
     pawnpospoints = {0:9,1:6,2:3,3:0}
 
+    weights = [8,1,3]
+    #weights for material, capture options, pawn depth
+
     if player.name=="white":
         opponent = board.players[1]
     else:
@@ -154,20 +162,20 @@ def evalheuristic(board,player):
 
     ps = board.get_player_pieces(player)
     for p in ps:
-        score += piecepoints[p.name]
+        score += piecepoints[p.name] * weights[0]
         if p.name == "Pawn":
-            score += pawnpospoints[p.position.y]
+            score += pawnpospoints[p.position.y] * weights[2]
         for m in p.get_move_options():
             for c in m.captures:
-                score += piecepoints[board[c].piece.name]
+                score += piecepoints[board[c].piece.name] * weights[1]
     ops = board.get_player_pieces(opponent)
     for p in ops:
-        score -= piecepoints[p.name]
+        score -= piecepoints[p.name] * weights[0]
         if p.name == "Pawn":
-            score -= pawnpospoints[board.size[1]-p.position.y-1]
+            score -= pawnpospoints[board.size[1]-p.position.y-1] * weights[2]
         for m in p.get_move_options():
             for c in m.captures:
-                score -= piecepoints[board[c].piece.name]
+                score -= piecepoints[board[c].piece.name] * weights[1]
 
 
 
@@ -213,7 +221,7 @@ if __name__ == '__main__':
     #print_board_ascii(board)
     d = 3
     starttime = time.perf_counter()
-    h, pms = funny_ab_minimax_map(board, white, white, [d, 14, time.perf_counter()+14,d], -math.inf, math.inf, d, 1,pool)
+    h, pms = funny_ab_minimax_map(board, white, white, [d, 14, time.perf_counter()+14,d,0.5], -math.inf, math.inf, d, 1,pool)
     pool.close()
     print("----- map ver done -----")
     print("depth:", d)
@@ -231,8 +239,14 @@ if __name__ == '__main__':
     print("total time NOT in heuristics:",ttime-htime)
     #print("average heuristic time:", str(1000*htime/leaves)+"ms")
 
+
+#all on hellsample
+#NO PAWN DEPTH
 #depth 3
 #value 12
 #18.13, 7.62, 19.43, 10.58, 11.42, 13.92, 7.37, 8.36, 18.76, 11.47
 
-#
+#WITH PAWN DEPTH
+#depth 3
+#value 17
+#7.46, 10.94, 20.33, 9.42, 11.93, 18.34, 17.32, 14.04,
