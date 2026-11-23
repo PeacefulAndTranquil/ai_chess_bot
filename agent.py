@@ -4,18 +4,19 @@ import sys
 import time
 import multiprocessing as mp
 from itertools import cycle, repeat
-from operator import truediv
 from random import shuffle
-from samples import white, black
+#from samples import white, black
 from chessmaker.chess.pieces import *
 from chessmaker.chess.results import checkmate, stalemate
+
 
 
 from chessmaker.chess.base import MoveOption, move_option, piece, Piece, Player, Position, player
 from opponent import opponent
 from extension.board_utils import list_legal_moves_for, take_notes, copy_piece_move, print_board_ascii
 import chessmaker
-
+white = Player("white")
+black = Player("black")
 def agent(board, player, var):
     """"
     This is an example of your designed Agent
@@ -45,16 +46,14 @@ def agent(board, player, var):
     piece, move_opt = None, None
     print(f"Ply: {var[0]}")
     take_notes("\n----- ply " + str(var[0]) + " -----")
-    global test
-    test = False
 
     pool = mp.Pool()
     #test
     s = time.perf_counter()
-    depth = 4
-    panicmargin = 0.7
-    customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin]
-
+    depth = 10
+    panicmargin = 0.5
+    test = False
+    customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin,test]
     abm = funny_ab_minimax_map(board,player,player,customvar,-math.inf,math.inf,depth,1,pool)
     pool.close()
     pool.join()
@@ -73,11 +72,9 @@ def board_piece_move_eval (info,move):
     tempp.move(tempm)
     return colour*evalheuristic(tempb,player),(piece,move)
 def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour,pool) -> (int,[piece,move_option]):
+    test = var[5]
     legal = list_legal_moves_for_map(board, turn,pool)
     shuffle(legal)
-    global leaves
-    global culls
-    global test
     if turn.name == "white":
         nextturn = black
     else:
@@ -120,7 +117,7 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour,pool) -> (int
 
         return a,([(chosenMove[0], chosenMove[1])]+pms)
     else:
-        eh = colour * evalheuristic(board, player, var)
+        eh = colour * evalheuristic(board, player)
         return eh, []
 
 
@@ -195,8 +192,8 @@ if __name__ == '__main__':
     culls = 0
 
     #test without time limits?
-    global test
-    test = True
+
+    test = False
     pool = mp.Pool()
     players = [white,black]
     board = chessmaker.chess.base.Board(d4failsample,players, cycle(players))
@@ -208,9 +205,9 @@ if __name__ == '__main__':
     #board,piece,move = copy_piece_move(board,pms[0][0],pms[0][1])
     #piece.move(move)
     #print_board_ascii(board)
-    d = 4
+    d = 3
     starttime = time.perf_counter()
-    h, pms = funny_ab_minimax_map(board, white, white, [d, 14, time.perf_counter()+14,d,0.5], -math.inf, math.inf, d, 1,pool)
+    h, pms = funny_ab_minimax_map(board, white, white, [d, 14, time.perf_counter()+14,d,0.5,test], -math.inf, math.inf, d, 1,pool)
     pool.close()
     print("----- done -----")
     print("depth:", d)
