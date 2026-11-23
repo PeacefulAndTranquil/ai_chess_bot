@@ -49,7 +49,7 @@ def agent(board, player, var):
     test = False
 
     pool = mp.Pool()
-
+    #test
     s = time.perf_counter()
     depth = 4
     panicmargin = 0.7
