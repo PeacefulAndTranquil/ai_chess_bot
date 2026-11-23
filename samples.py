@@ -71,6 +71,13 @@ timeoutsample = [
 [Square(),Square(King(white)),Square(),Square(Queen(white)),Square()]
 ]
 
+d4failsample = [
+[Square(),Square(Queen(black)),Square(King(black)),Square(Bishop(black)),Square()],
+[Square(Pawn_Q(black)),Square(),Square(Knight(black)),Square(Pawn_Q(black)),Square()],
+[Square(Pawn_Q(black)),Square(Pawn_Q(black)),Square(),Square(Queen(white)),Square(Pawn_Q(black))],
+[Square(),Square(Pawn_Q(white)),Square(Pawn_Q(white)),Square(),Square(Pawn_Q(white))],
+[Square(),Square(Bishop(white)),Square(),Square(King(white)),Square(Knight(white))]
+]
 
 
 
@@ -111,10 +118,10 @@ if __name__ == "__main__":
         for p in ps:
                 print(p)
         funny = ("[\n"
-                 "[o,q,k,o,r],\n"
+                 "[o,q,k,b,o],\n"
                  "[p,o,n,p,o],\n"
-                 "[P,b,o,o,P],\n"
-                 "[o,p,B,o,p],\n"
-                 "[o,K,o,Q,o]\n"
+                 "[p,p,o,Q,p],\n"
+                 "[o,P,P,o,P],\n"
+                 "[o,B,o,K,N]\n"
                  "]")
         print(string2board(funny))

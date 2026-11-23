@@ -88,5 +88,5 @@ def testgame_timeout(p_white, p_black, board_sample):
 
 if __name__ == "__main__":
     testgame_timeout(p_white=agent, p_black=opponent, board_sample=sample0)
-    winsound.Beep(2500,250)
+    winsound.Beep(2500,500)
     winsound.Beep(5000, 250)

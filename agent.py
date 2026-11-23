@@ -51,8 +51,8 @@ def agent(board, player, var):
     pool = mp.Pool()
 
     s = time.perf_counter()
-    depth = 3
-    panicmargin = 0.5
+    depth = 4
+    panicmargin = 0.7
     customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin]
 
     abm = funny_ab_minimax_map(board,player,player,customvar,-math.inf,math.inf,depth,1,pool)
@@ -65,9 +65,9 @@ def agent(board, player, var):
 
 
 def board_piece_move_eval (info,move):
-    board,piece,player,colour,var = info
-    if time.perf_counter() >= var[2] - var[3]:
-        return colour * math.inf * -1, (piece,move)
+    board,piece,player,colour,var,testing = info
+    if time.perf_counter() >= var[2] - var[4] and not testing:
+        return colour * math.inf * -1, (piece,move) #idk if it needs to be *-1 i'm scared help
     tempb = board.clone()
     tempb, tempp, tempm = copy_piece_move(tempb, piece, move)
     tempp.move(tempm)
@@ -103,14 +103,18 @@ def funny_ab_minimax_map(board, player, turn, var,a,b,depth,colour,pool) -> (int
                         ra, rpms = funny_ab_minimax_map(tempb,player,nextturn,var,-b,-a,depth-1, colour*-1,pool)
                         val,chosenMove,pms = max((-ra,(p,m),rpms),(val,chosenMove,pms),key=lambda x : x[0])
                         a = max(a,val)
-                        if a>=b or (time.perf_counter() >= var[2] - var[3] and not test):
+                        if a>=b or (time.perf_counter() >= var[2] - var[4] and not test):
+                            if test:
+                                culls += 1
                             return a,([(p,m)]+pms)
                 else:
-                    vs = pool.starmap(board_piece_move_eval,zip(repeat((board,p,player,-1*colour,var)),lpm[1]))
+                    vs = pool.starmap(board_piece_move_eval,zip(repeat((board,p,player,-1*colour,var,test)),lpm[1]))
                     mv = max(vs+[(val,chosenMove)],key=lambda x : x[0])
                     val,chosenMove = mv
                     a = max(a, val)
-                    if a >= b or (time.perf_counter() >= var[2] - var[3] and not test):
+                    if a >= b or (time.perf_counter() >= var[2] - var[4] and not test):
+                        if test:
+                            culls += 1
                         return a, ([chosenMove] + pms)
 
 
@@ -136,22 +140,14 @@ def pair_piece_with_moves(piece):
 def evalheuristic(board,player):
     #consider each player's pieces, their worth, and the pieces each player has in danger. perhaps depth of pawns, promotion??
     #consider forks? amount of possible moves?
-
-    global htime
-    global amtime
-    s = time.perf_counter()
-    global leaves
-    global lmtime
-    global test
-    #leaves += 1
-    piecepoints = {"Pawn":1, "Right":6, "Knight":3, "Bishop":3, "Queen":9, "King":9}
+    piecepoints = {"Pawn":1, "Right":10, "Knight":3, "Bishop":3, "Queen":9, "King":15}
     #right and king approximated in points
     #right does not exist in normal chess
     #king has no point value in normal chess
     #do mess with these if it's bad
     pawnpospoints = {0:9,1:6,2:3,3:0}
 
-    weights = [8,1,3]
+    weights = [8,1,2]
     #weights for material, capture options, pawn depth
 
     if player.name=="white":
@@ -189,7 +185,6 @@ def evalheuristic(board,player):
         score += 1000
     if stalemate(board):
         score -= 500
-    #htime += time.perf_counter() - s
     return score
 
 if __name__ == '__main__':
@@ -198,19 +193,13 @@ if __name__ == '__main__':
     leaves = 0
     global culls
     culls = 0
-    global htime
-    htime = 0
-    global amtime
-    amtime = 0
-    global lmtime
-    lmtime = 0
 
     #test without time limits?
     global test
     test = True
     pool = mp.Pool()
     players = [white,black]
-    board = chessmaker.chess.base.Board(hellsample,players, cycle(players))
+    board = chessmaker.chess.base.Board(d4failsample,players, cycle(players))
     print_board_ascii(board)
     legals = list_legal_moves_for_map(board, white,pool)
     print(legals)
@@ -219,24 +208,16 @@ if __name__ == '__main__':
     #board,piece,move = copy_piece_move(board,pms[0][0],pms[0][1])
     #piece.move(move)
     #print_board_ascii(board)
-    d = 3
+    d = 4
     starttime = time.perf_counter()
     h, pms = funny_ab_minimax_map(board, white, white, [d, 14, time.perf_counter()+14,d,0.5], -math.inf, math.inf, d, 1,pool)
     pool.close()
-    print("----- map ver done -----")
+    print("----- done -----")
     print("depth:", d)
     ttime = time.perf_counter() - starttime
     print(h, pms)
-    print("leaves:", leaves)
     print("culls:", culls)
     print("thinking time:", ttime)
-    print("total time in heuristics:",htime)
-    print("   attack/material scoring:", amtime)
-    #print("                           ", str(100*amtime/htime) + "%")
-    print("      legal move finding:  ", lmtime)
-    #print("                           ", str(100*lmtime/htime) + "%")
-    #print("                     avg:  ", str(1000*lmtime/leaves)+"ms")
-    print("total time NOT in heuristics:",ttime-htime)
     #print("average heuristic time:", str(1000*htime/leaves)+"ms")
 
 
