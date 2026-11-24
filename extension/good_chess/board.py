@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 from chessmaker.chess.base import Player, Board, Position
 from chessmaker.chess.pieces import King, Bishop, Knight, Queen, Pawn
 from extension.piece_right import Right
@@ -24,7 +24,7 @@ class PieceType(Enum):
     QUEEN = 4
     KING = 5
 
-class Player(Enum):
+class Player(IntEnum):
     WHITE = 0
     BLACK = 1
 
@@ -43,7 +43,7 @@ class Board:
     def __init__(self, inputboard):
         #raise NotImplemented
         s = len(inputboard)
-        self.board = [[None for x in range(s)] for y in range(s)]
+        self.board = [[Piece(None,None) for x in range(s)] for y in range(s)]
         for i in range(s):
             for j in range(s):
                 p = inputboard[i][j].piece
@@ -59,7 +59,7 @@ class Board:
             str = ""
             for j in range(s):
                 p = self.board[i][j]
-                if p is None:
+                if p.piecetype is None:
                     str = str + "  "
                 elif p.player == Player.WHITE:
                     str = str + self._prettyprintdict[p.piecetype] + " "
@@ -69,18 +69,54 @@ class Board:
 
 
     def piecemoves(self) -> [Move]:
-        """returns a list of tuples formatted like:
-        piece, piece position, piece destination, captured piece"""
+        """returns a list of moves formatted like:
+        piece, piece position, piece destination, captured piece, promotion"""
         s = len(self.board)
         o = []
         for i in range(s):
             for j in range(s):
+                pos=(i,j)
                 p = self.board[i][j]
-                if p is not None:
-                    match p.piecetype:
-                        case PieceType.PAWN:
-                            if p.player==Player.WHITE and i==s-2:
-                                o += Move(p,)
+                match p.piecetype:
+                    case None:
+                        pass
+                    case PieceType.PAWN:
+                        if p.player==Player.WHITE:
+                            c=1
+                        else:
+                            c=-1
+                        o += self._checkmove(p, pos, (i, j-(1*c)), [None])
+                        if i==s-2:
+                            o += self._checkmove(p, pos, (i, j-(2*c)), [None])
+
+                        o += self._checkmove(p, pos, (i-1, j-(1*c)), [Player(not p.player)])
+                        o += self._checkmove(p, pos, (i+1, j-(1*c)), [Player(not p.player)])
+                    case PieceType.RIGHT:
+                        pass
+                    case PieceType.KNIGHT:
+                        pass
+                    case PieceType.BISHOP:
+                        pass
+                    case PieceType.QUEEN:
+                        pass
+                    case PieceType.KING:
+                        pass
+        raise NotImplementedError
+
+
+
+
+    def _checkmove(self, p, pos, dest, validLandingOccupants:list[Player|None]) -> list[Move]:
+        if        ((dest[0] not in range(len(self.board)))
+                or (dest[1] not in range(len(self.board)))
+                or self.board[dest[0]][dest[1]].player not in validLandingOccupants):
+            return []
+        else:
+            target: Piece = self.board[dest[0]][dest[1]]
+            if p.piecetype == PieceType.PAWN and (pos[1] == 0 or pos[1] == len(self.board) - 1):
+                return [Move(p, pos, dest, target.piecetype, PieceType.QUEEN)]
+            else:
+                return [Move(p, pos, dest, target.piecetype, None)]
 
 
 b = Board(sample0)
