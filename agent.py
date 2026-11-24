@@ -5,18 +5,15 @@ import time
 import multiprocessing as mp
 from itertools import cycle, repeat
 from random import shuffle
-#from samples import white, black
 from chessmaker.chess.pieces import *
 from chessmaker.chess.results import checkmate, stalemate
 
-
+from samples import white,black
 
 from chessmaker.chess.base import MoveOption, move_option, piece, Piece, Player, Position, player
 from opponent import opponent
 from extension.board_utils import list_legal_moves_for, take_notes, copy_piece_move, print_board_ascii
 import chessmaker
-white = Player("white")
-black = Player("black")
 def agent(board, player, var):
     """"
     This is an example of your designed Agent
@@ -50,7 +47,7 @@ def agent(board, player, var):
     pool = mp.Pool()
     #test
     s = time.perf_counter()
-    depth = 10
+    depth = 3
     panicmargin = 0.5
     test = False
     customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin,test]
