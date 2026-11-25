@@ -49,8 +49,16 @@ hellsample = [
 ]
 justaqueens = [
         [Square(),Square(),Square(),Square(),Square(Queen(black))],
-        [Square(),Square(),Square(),Square(),Square()],
+        [Square(),Square(),Square(),Square(Pawn_Q(white)),Square()],
         [Square(),Square(),Square(Queen(white)),Square(),Square()],
+        [Square(),Square(),Square(),Square(),Square()],
+        [Square(),Square(),Square(),Square(),Square()],
+]
+
+inchecksample = [
+        [Square(),Square(),Square(),Square(),Square()],
+        [Square(),Square(),Square(),Square(),Square()],
+        [Square(King(black)),Square(),Square(),Square(),Square(Queen(white))],
         [Square(),Square(),Square(),Square(),Square()],
         [Square(),Square(),Square(),Square(),Square()],
 ]

@@ -12,8 +12,7 @@ from chessmaker.chess.results import checkmate, stalemate
 
 
 from chessmaker.chess.base import MoveOption, move_option, piece, Piece, Player, Position, player
-from opponent import opponent
-from extension.board_utils import list_legal_moves_for, take_notes, copy_piece_move, print_board_ascii
+from extension.board_utils import list_legal_moves_for, take_notes, copy_piece_move
 import chessmaker
 
 def agent(board, player, var):
