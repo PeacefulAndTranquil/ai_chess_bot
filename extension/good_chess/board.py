@@ -1,4 +1,6 @@
+import time
 from enum import Enum, IntEnum
+import random
 from random import shuffle
 
 from chessmaker.chess.base import Square as cmSquare
@@ -282,13 +284,13 @@ class Board:
         return o
 
     def legalplayerpiecemoves(self,player:Player):
-        ms = self.playerpiecemoves(player)
+        ms = self._playerpiecemoves(player)
         #fms = list(filter((lambda m : self.copymove(m).check() is None),ms))
         fms = []
         for m in ms:
             b2 = self.copymove(m)
             c = b2.check()
-            if c is None:
+            if player not in c:
                 fms += [m]
         return fms
 
@@ -307,7 +309,7 @@ class Board:
         return b2
 
     def _playerpiecemoves(self,player:Player):
-        ms = self.piecemoves()
+        ms = self._piecemoves()
         pms = list(filter((lambda x : x.piece.player == player),ms))
         return pms
 
@@ -328,25 +330,39 @@ class Board:
             else:
                 return [Move(p, pos, dest, target.piecetype, None)],(target.piecetype is None)
 
-    def check(self):
-        ms = self.piecemoves()
+    def check(self) -> set[Player]:
+        ms = self._piecemoves()
         fms = list(filter((lambda m : m.capture == PieceType.KING),ms))
-        if fms:
-            return fms[0].piece.player.enemy()
-        else:
-            return None
+        inchecks = set()
+        # return fms[0].piece.player.enemy()
+        for m in fms:
+            inchecks.add(m.piece.player.enemy())
+        return inchecks
+
 b = Board(sample0)
 print(b)
-mover = Player.WHITE
+mover = Player.BLACK
+print(b.check())
+
+# fmls = b.legalplayerpiecemoves(Player.BLACK)
+# shuffle(fmls)
+# for m in fmls: print(m)
+s = time.perf_counter()
+print("seed:",s)
+random.seed(s)
+n=1
 while True:
     lms = b.legalplayerpiecemoves(mover)
     shuffle(lms)
+    print("turn",n)
+    n+=1
     if lms:
         b = b.copymove(lms[0])
+        print(mover.name +"'s move")
         print(b)
     else:
+        print(mover.name + " cannot move")
         break
     mover = mover.enemy()
 
-print(b)
 print(b.check())

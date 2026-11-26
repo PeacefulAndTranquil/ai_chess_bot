@@ -87,6 +87,13 @@ d4failsample = [
 [Square(),Square(Bishop(white)),Square(),Square(King(white)),Square(Knight(white))]
 ]
 
+falsecheckmatesample = [
+[Square(),Square(Queen(black)),Square(King(black)),Square(),Square()],
+[Square(Pawn_Q(black)),Square(Pawn_Q(black)),Square(Queen(white)),Square(),Square()],
+[Square(Pawn_Q(white)),Square(),Square(),Square(Queen(white)),Square(Right(black))],
+[Square(Bishop(white)),Square(King(white)),Square(),Square(),Square(Pawn_Q(white))],
+[Square(),Square(),Square(),Square(),Square(Knight(white))]
+]
 
 
 def string2board(s):
@@ -126,10 +133,10 @@ if __name__ == "__main__":
         for p in ps:
                 print(p)
         funny = ("[\n"
-                 "[o,q,k,b,o],\n"
-                 "[p,o,n,p,o],\n"
-                 "[p,p,o,Q,p],\n"
-                 "[o,P,P,o,P],\n"
-                 "[o,B,o,K,N]\n"
+                 "[o,q,k,o,o],\n"
+                 "[p,p,Q,o,o],\n"
+                 "[P,o,o,Q,r],\n"
+                 "[B,K,o,o,P],\n"
+                 "[o,o,o,o,N]\n"
                  "]")
         print(string2board(funny))
