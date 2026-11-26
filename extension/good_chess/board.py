@@ -341,6 +341,7 @@ class Board:
 
 b = Board(sample0)
 print(b)
+input()
 mover = Player.BLACK
 print(b.check())
 
