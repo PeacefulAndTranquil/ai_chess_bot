@@ -549,7 +549,7 @@ def evalheuristic(board:Board,player:Player, turn:Player):
 
 
 
-    weights = [5,3,3]
+    weights = [6,3,3]
     #weights for material, capture options, pawn depth
 
     opponent = player.enemy()
