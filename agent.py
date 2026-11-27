@@ -543,8 +543,8 @@ def evalheuristic(board:Board,player:Player, turn:Player):
     #right does not exist in normal chess
     #king has no point value in normal chess
     #do mess with these if it's bad
-    pawnpospoints = {(0,Player.WHITE):9,(1,Player.WHITE):6,(2,Player.WHITE):3,(3,Player.WHITE):0,(4,Player.WHITE):0,
-                     (4,Player.BLACK):9,(3,Player.BLACK):6,(2,Player.BLACK):3,(1,Player.BLACK):0,(0,Player.BLACK):0,
+    pawnpospoints = {(0,Player.WHITE):20,(1,Player.WHITE):13,(2,Player.WHITE):7,(3,Player.WHITE):0,(4,Player.WHITE):0,
+                     (4,Player.BLACK):20,(3,Player.BLACK):13,(2,Player.BLACK):7,(1,Player.BLACK):0,(0,Player.BLACK):0,
                      (0,None): 0,(1,None): 0,(2,None): 0,(3,None): 0,(4,None): 0,}
 
 
@@ -559,14 +559,14 @@ def evalheuristic(board:Board,player:Player, turn:Player):
     #endgame status scoring
     cms = board.checkmate()
     if player in cms:
-        return -1000
+        return -100000
     if opponent in cms:
-        return 1000
+        return 100000
     sms = board.stalemate()
     if player in sms and player == turn:
-        return -500
+        return -50000
     if opponent in sms and opponent == turn:
-        return 500
+        return 50000
 
     #scorer lambda
     board_pos_score = lambda board,y,x : (
