@@ -42,7 +42,7 @@ def agent(board:cmBoard, player, var):
 
     #test
     s = time.perf_counter()
-    depth = 3
+    depth = 4
     panicmargin = 0.5
     test = False
     customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin,test]
