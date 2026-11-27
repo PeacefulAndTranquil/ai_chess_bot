@@ -42,8 +42,8 @@ def agent(board:cmBoard, player, var):
 
     #test
     s = time.perf_counter()
-    depth = 3
-    panicmargin = 0.5
+    depth = 4
+    panicmargin = 0.1
     test = False
     customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin,test]
     customboard = Board()
@@ -61,12 +61,15 @@ def agent(board:cmBoard, player, var):
     abm = funny_ab_minimax_map(customboard,customplayer,customplayer,customvar,-math.inf,math.inf,depth,1,{})
     take_notes("heuristic val: " + str(abm[0]))
     take_notes("transposition table entries:"+str(len(tt)))
-    take_notes("thought for:"+str(time.perf_counter()-s))
 
     #convert Move to MoveOption
     m:Move = abm[1]
     piece = board[cmPosition(m.position[1], m.position[0])].piece
     move_opt = cmMoveOption(cmPosition(m.destination[1],m.destination[0]),set([cmPosition(m.destination[1],m.destination[0])]))
+
+    take_notes("thought for:"+str(time.perf_counter()-s))
+
+
 
     return piece, move_opt
 
