@@ -123,9 +123,9 @@ class Move:
     def __str__(self):
         s = str(self.piece.player.name + " " + self.piece.piecetype.name + " to " + str(self.destination))
         if self.capture is not None:
-            s += ", capturing " + self.capture.name
+            s += " capturing " + self.capture.name
         if self.promotion is not None:
-            s += ", promoting to " + self.promotion.name
+            s += " promoting to " + self.promotion.name
         return s
 
 
@@ -395,7 +395,7 @@ class Board:
         b2.board = copy.deepcopy(self.board)
 
         b2.board[y][x] = Piece(None,None)
-        b2.board[dy][dx] = move.piece
+        b2.board[dy][dx] = Piece(move.piece.piecetype, move.piece.player)
         if move.promotion:
             b2.board[dy][dx].piecetype = move.promotion
         return b2
@@ -566,14 +566,20 @@ def evalheuristic(board:Board,player:Player, turn:Player):
     if player in sms and player == turn:
         return -500
     if opponent in sms and opponent == turn:
-        return -500
+        return 500
 
     #scorer lambda
     board_pos_score = lambda board,y,x : (
             scorerdict[board[y][x].player]*( #factors in player
-                (piecepoints[board[y][x].piecetype]*weights[0]) #material
+                (piecepoints[board[y][x].piecetype] #material
+                 *weights[0])
                 + ((board[y][x].piecetype==PieceType.PAWN)*pawnpospoints[(y, board[y][x].player)]) #pawn depth
-                + sum((piecepoints[m.capture] + (pawnpospoints[(m.destination[0], board[m.destination[0]][m.destination[1]].player)] if m.capture==PieceType.PAWN else 0)) for m in board.legalpospiecemoves((y,x))) * weights[1] #captures
+                *weights[2]
+                + sum((piecepoints[m.capture] #captures
+                       + (pawnpospoints[(m.destination[0], board[m.destination[0]][m.destination[1]].player)]
+                        if m.capture==PieceType.PAWN else 0))
+                      for m in board.legalpospiecemoves((y,x)))
+                * weights[1]
             )
     )
 
@@ -581,33 +587,6 @@ def evalheuristic(board:Board,player:Player, turn:Player):
     for y in range(len(board.board)):
         for x in range(len(board.board)):
             score += board_pos_score(board,y,x)
-    #score = (
-    # sum(map(lambda y :
-    #     sum(map(lambda x :
-    #         board_pos_score(board,y,x)
-    #         , range(len(board.board))))
-    #     , range(len(board.board)))))
-
-        # for x in range(len(board.board)):
-        #     p = board[y][x]
-        #     if p.player == player:
-        #         score += piecepoints[p.piecetype] * weights[0]
-        #         if p.piecetype == PieceType.PAWN:
-        #             score += pawnpospoints[y] * weights[2]
-        #     elif p.player == opponent:
-        #         score -= piecepoints[p.piecetype] * weights[0]
-        #         if p.piecetype == PieceType.PAWN:
-        #             score -= pawnpospoints[len(board.board)-y-1] * weights[2]
-        #     else:
-        #         pass
-    #capture scoring
-    # (!) is it worth keeping something this lightly weighted that takes this long? removing it takes the eval's time from ~80% to ~60%
-    #
-    # for cm in filter(lambda m : m.capture is not None,board.legalpiecemoves()):
-    #     score += piecepoints[cm.capture] * weights[1] * scorerdict[cm.piece.player]
-
-
-
 
     return score
 
