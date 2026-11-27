@@ -42,10 +42,9 @@ def agent(board:cmBoard, player, var):
 
     #test
     s = time.perf_counter()
-    depth = 3
-    panicmargin = 0.1
+
+    panicmargin = 0.2
     test = False
-    customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin,test]
     customboard = Board()
     piecetypeconvert = {"Pawn":PieceType.PAWN,"Right":PieceType.RIGHT,"Knight":PieceType.KNIGHT,"Bishop":PieceType.BISHOP,"Queen":PieceType.QUEEN,"King":PieceType.KING}
     playerconvert = {"white":Player.WHITE,"black":Player.BLACK}
@@ -58,9 +57,21 @@ def agent(board:cmBoard, player, var):
     #print(customboard)
     customplayer = playerconvert[player.name]
     tt={}
-    abm = funny_ab_minimax_map(customboard,customplayer,customplayer,customvar,-math.inf,math.inf,depth,1,{})
+    depth = 2
+    abm = (-math.inf, Move(None,None,None,None,None))
+    customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin,test]
+
+    pettinessthreshold = 0
+    while time.perf_counter() <= customvar[2] - customvar[4] and abm[0] < pettinessthreshold:
+        depth+=1
+        customvar[3] = depth
+        tbm = funny_ab_minimax_map(customboard,customplayer,customplayer,customvar,-math.inf,math.inf,depth,1,{})
+        abm = max(tbm,abm,key=lambda x : x[0])
+
+
     take_notes("heuristic val: " + str(abm[0]))
     take_notes("transposition table entries:"+str(len(tt)))
+    take_notes("max depth reached:"+str(depth))
 
     #convert Move to MoveOption
     m:Move = abm[1]
@@ -489,8 +500,9 @@ def funny_ab_minimax_map(board:Board, player:Player, turn:Player, var,a,b,depth,
         #htime += time.perf_counter() - t
         return eh, []
 
-    legal.sort(key=lambda mov : {None:0,PieceType.PAWN:1, PieceType.RIGHT:10, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:15}[mov.capture])
     shuffle(legal)
+    legal.sort(key=lambda mov : {None:0,PieceType.PAWN:1, PieceType.RIGHT:10, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:15}[mov.capture])
+
 
     chosen_move = None
     val = -math.inf
