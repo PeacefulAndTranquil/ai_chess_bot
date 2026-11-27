@@ -490,7 +490,7 @@ def funny_ab_minimax_map(board:Board, player:Player, turn:Player, var,a,b,depth,
         return eh, []
 
     legal.sort(key=lambda mov : {None:0,PieceType.PAWN:1, PieceType.RIGHT:10, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:15}[mov.capture])
-
+    shuffle(legal)
 
     chosen_move = None
     val = -math.inf
