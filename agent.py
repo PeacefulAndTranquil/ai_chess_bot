@@ -7,10 +7,10 @@ from random import shuffle
 import copy
 from typing import NamedTuple
 
-from chessmaker.chess.base import move_option as cm_move_option, piece as cm_piece, Square as cmSquare
+from chessmaker.chess.base import MoveOption as cmMoveOption, Piece as cmPiece, Square as cmSquare, Board as cmBoard, Position as cmPosition
 from extension.board_utils import list_legal_moves_for, take_notes, copy_piece_move
 import chessmaker
-def agent(board, player, var):
+def agent(board:cmBoard, player, var):
     """"
     This is an example of your designed Agent
 
@@ -40,19 +40,34 @@ def agent(board, player, var):
     print(f"Ply: {var[0]}")
     take_notes("\n----- ply " + str(var[0]) + " -----")
 
-    pool = mp.Pool()
     #test
     s = time.perf_counter()
     depth = 3
     panicmargin = 0.5
     test = False
     customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin,test]
-    abm = funny_ab_minimax_map(board,player,player,customvar,-math.inf,math.inf,depth,1,pool)
-    pool.close()
-    pool.join()
+    customboard = Board()
+    piecetypeconvert = {"Pawn":PieceType.PAWN,"Right":PieceType.RIGHT,"Knight":PieceType.KNIGHT,"Bishop":PieceType.BISHOP,"Queen":PieceType.QUEEN,"King":PieceType.KING}
+    playerconvert = {"white":Player.WHITE,"black":Player.BLACK}
+    for y in range(5):
+        for x in range(5):
+            p:cmPiece = board[cmPosition(x,y)].piece
+            if p is not None:
+                pt, pl = p.name, p.player.name
+                customboard.board[y][x] = Piece(piecetypeconvert[pt],playerconvert[pl])
+    #print(customboard)
+    customplayer = playerconvert[player.name]
+    tt={}
+    abm = funny_ab_minimax_map(customboard,customplayer,customplayer,customvar,-math.inf,math.inf,depth,1,{})
     take_notes("heuristic val: " + str(abm[0]))
-    piece, move_opt = abm[1][0]
+    take_notes("transposition table entries:"+str(len(tt)))
     take_notes("thought for:"+str(time.perf_counter()-s))
+
+    #convert Move to MoveOption
+    m:Move = abm[1]
+    piece = board[cmPosition(m.position[1], m.position[0])].piece
+    move_opt = cmMoveOption(cmPosition(m.destination[1],m.destination[0]),set([cmPosition(m.destination[1],m.destination[0])]))
+
     return piece, move_opt
 
 # EXPORTED BOARD CLASS STARTS HERE!!!
@@ -453,7 +468,7 @@ def funny_ab_minimax_map(board:Board, player:Player, turn:Player, var,a,b,depth,
     if hash(board) in ttable:
         e = ttable[hash(board)]
         if e.depth >= depth:
-            print("ping")
+            #print("ping")
             if e.flag == TTableFlag.EXACT:
                 return (e.value, e.pm)
             elif e.flag == TTableFlag.LOWERBOUND and e.value >= b:
@@ -463,12 +478,12 @@ def funny_ab_minimax_map(board:Board, player:Player, turn:Player, var,a,b,depth,
 
 
     legal:list[Move] = board.legalplayerpiecemoves(turn)
-    global htime
+    #global htime
     next_turn = turn.enemy()
     if not((legal!=[]) & (depth > 0)):
         t = time.perf_counter()
         eh = colour * evalheuristic(board, player, next_turn)
-        htime += time.perf_counter() - t
+        #htime += time.perf_counter() - t
         return eh, []
 
     legal.sort(key=lambda mov : {None:0,PieceType.PAWN:1, PieceType.RIGHT:10, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:15}[mov.capture])
@@ -544,22 +559,22 @@ def evalheuristic(board:Board,player:Player, turn:Player):
     #scorer lambda
     board_pos_score = lambda board,y,x : (
             scorerdict[board[y][x].player]*( #factors in player
-                (piecepoints[board[y][x].piecetype]*weights[0]) + #material
-                ((board[y][x].piecetype==PieceType.PAWN)*pawnpospoints[(y, board[y][x].player)]) + #pawn depth
-                sum((piecepoints[m.capture]) for m in board.legalpospiecemoves((y,x))) * weights[1] #captures
+                (piecepoints[board[y][x].piecetype]*weights[0]) #material
+                + ((board[y][x].piecetype==PieceType.PAWN)*pawnpospoints[(y, board[y][x].player)]) #pawn depth
+                #+ sum((piecepoints[m.capture]) for m in board.legalpospiecemoves((y,x))) * weights[1] #captures
             )
     )
 
     #material & pawn depth scoring
-    # for y in range(len(board.board)):
-    #     for x in range(len(board.board)):
-    #         score += board_pos_score(board,y,x)
-    score = (
-    sum(map(lambda y :
-        sum(map(lambda x :
-            board_pos_score(board,y,x)
-            , range(len(board.board))))
-        , range(len(board.board)))))
+    for y in range(len(board.board)):
+        for x in range(len(board.board)):
+            score += board_pos_score(board,y,x)
+    #score = (
+    # sum(map(lambda y :
+    #     sum(map(lambda x :
+    #         board_pos_score(board,y,x)
+    #         , range(len(board.board))))
+    #     , range(len(board.board)))))
 
         # for x in range(len(board.board)):
         #     p = board[y][x]
@@ -584,40 +599,40 @@ def evalheuristic(board:Board,player:Player, turn:Player):
 
     return score
 
-if __name__ == '__main__':
-    from samples import sample0
-    s=time.perf_counter()
-    print("seed:",s)
-    random.seed(s)
-
-    #test without time limits?
-    test = True
-
-    board = Board(sample0)
-    print(board)
-    legals = board.legalplayerpiecemoves(Player.WHITE)
-    #for l in legals: print(l)
-    print("hash",hash(board))
-    print("hash",hash(board))
-    print("num of initial moves:",len(legals))
-    starttime = time.perf_counter()
-    d = 4
-    print("depth:",d)
-    starttime = time.perf_counter()
-
-    global htime
-    htime = 0
-    tt = {}
-    h, pm = funny_ab_minimax_map(board, Player.WHITE, Player.WHITE, [d, 14, time.perf_counter()+14,d,0.5,test], -math.inf, math.inf, d, 1, tt)
-
-    print("----- done -----")
-    print("depth:", d)
-    print("tt size:", len(tt))
-    ttime = time.perf_counter() - starttime
-    print(h, ",", pm)
-    print("thinking time:", round(ttime,2))
-    print("time in heuristic:", round(htime,2))
-    print("                  ", round(100*htime/ttime,2),"%")
-    print("time elsewhere:   ", round(ttime-htime,2))
-    print("                  ", round(100*(ttime-htime)/ttime,2),"%")
+# if __name__ == '__main__':
+#     from samples import sample0
+#     s=time.perf_counter()
+#     print("seed:",s)
+#     random.seed(s)
+#
+#     #test without time limits?
+#     test = True
+#
+#     board = Board(sample0)
+#     print(board)
+#     legals = board.legalplayerpiecemoves(Player.WHITE)
+#     #for l in legals: print(l)
+#     print("hash",hash(board))
+#     print("hash",hash(board))
+#     print("num of initial moves:",len(legals))
+#     starttime = time.perf_counter()
+#     d = 4
+#     print("depth:",d)
+#     starttime = time.perf_counter()
+#
+#     #global htime
+#     #htime = 0
+#     tt = {}
+#     h, pm = funny_ab_minimax_map(board, Player.WHITE, Player.WHITE, [d, 14, time.perf_counter()+14,d,0.5,test], -math.inf, math.inf, d, 1, tt)
+#
+#     print("----- done -----")
+#     print("depth:", d)
+#     print("tt size:", len(tt))
+#     ttime = time.perf_counter() - starttime
+#     print(h, ",", pm)
+#     print("thinking time:", round(ttime,2))
+#     print("time in heuristic:", round(htime,2))
+#     print("                  ", round(100*htime/ttime,2),"%")
+#     print("time elsewhere:   ", round(ttime-htime,2))
+#     print("                  ", round(100*(ttime-htime)/ttime,2),"%")
 
