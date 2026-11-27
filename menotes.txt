@@ -1,0 +1,65 @@
+depth 5, sorted by capture, no captures eval:
+11.55, 6.79, 11.35, 12.58, 11.54
+
+same but shuffled:
+13.97, 12.47, 14.07, 12.63, 12.04
+
+sorting by capture definitely improves it.
+shuffle THEN sort:
+17.00, 13.91, ok yeah nah
+
+neither shuffle nor sort:
+16.13, 14.98, 12.90
+
+sorting back on:
+14.32, 13.16, 12.04, 10.77, 10.99
+was my laptop getting hot.
+
+ok with the slightly improved captures analysis
+26.37, 18.65, 17.51, 19.60
+
+put the pawn/material scoring on a map.
+17.99, 18.83, 22.73, 22.25, 18.69
+
+IDEA: make a function to return a given square's moves. added, not yet implemented to the EH loop.
+15.98, 16.63, 18.52
+
+ok thingy now happens in a single map instead of 2
+27.30, 18.82, 19.53
+
+maybe this is too much for our poor map. let's expand it back to a double for loop
+18.76, 20.94, 17.74, 17.57, 18.77
+avg. 18.756
+
+hmm. put it back to a map for a test. let's see
+18.96, 20.25, 23.62, 19.11, 34,69
+avg. 23.326
+
+seems worse. back to the for thenWAIT. low laptop power. i'll give it one more go in a second.
+18.45, 18.07, 16.72, 17.87, 13.90
+
+added transposition table (or gave it a go anyway).
+29.15, 21.72, 20.74, 18.59, 22.05
+
+hmm. not as good as hoped.
+wait hold the fuck on. tweaked it a bit
+3.74, 3.93, 3,88, 3.77, 3.75
+HOLY FUCK.
+uh oh. upped the depth and it didn't increase which is Not Often A Good Sign
+
+Fuck Fuck Fuck it's all fucked. heuristic stays the same no matter depth.
+
+ah shit rolling back doesn't fix it. pms are weird
+
+COPYMOVE IS STILL FUCKED! URETHRA!
+some reason it didn't catch i was doing board.board instead of self.board
+this did seem to slow it down a bit.
+readding ttables...
+
+depth 4.
+45.68 FUCK FUCK FUCK.
+
+added zobrist hashing. depth 4.
+55.63 :golden:
+d3
+11.04, 10.04, 10.87,

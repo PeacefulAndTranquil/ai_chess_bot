@@ -5,6 +5,7 @@ from enum import Enum, IntEnum
 import multiprocessing as mp
 from random import shuffle
 import copy
+from typing import NamedTuple
 
 from chessmaker.chess.base import move_option as cm_move_option, piece as cm_piece, Square as cmSquare
 from extension.board_utils import list_legal_moves_for, take_notes, copy_piece_move
@@ -64,6 +65,8 @@ class Piece:
             return "NONE"
         else:
             return (self.player.name + " " + self.piecetype.name)
+    def indexOf(self):
+        return self.piecetype.value + (self.player.value * 6)
 
 class PieceType(Enum):
     PAWN = 0
@@ -118,6 +121,17 @@ class Board:
                         c = self._chessmakerColourConverter[p.player.name]
                         self.board[i][j] = Piece(t,c)
 
+    _zobristTable = [[[random.randint(0,2**64) for i in range(12)] for i in range(5)] for j in range(5)]
+
+    def __hash__(self) -> int:
+        h = 0
+        for y in range(5):
+            for x in range(5):
+                p = self[y][x]
+                if p.piecetype is not None:
+                    h ^= Board._zobristTable[y][x][p.indexOf()]
+        return h
+
     _prettyprintdict = {PieceType.PAWN:"P",PieceType.RIGHT:"R",PieceType.KNIGHT:"N",PieceType.BISHOP:"B",PieceType.QUEEN:"Q",PieceType.KING:"K"}
     def __str__(self):
         s = len(self.board)
@@ -138,6 +152,190 @@ class Board:
     def __getitem__(self,i):
         return self.board[i]
 
+    def _pospiecemoves(self,pos:tuple[int,int]):
+        i,j = pos
+        o=[]
+        p = self.board[i][j]
+        if p.player is not None:
+            enemy = Player(p.player.enemy())
+            capset = [None, enemy]
+        match p.piecetype:
+            case None:
+                pass
+            case PieceType.PAWN:
+                if p.player==Player.WHITE:
+                    c=1
+                else:
+                    c=-1
+                o += self._checkmove(p, pos, (i-(1*c), j), [None])[0]
+
+                o += self._checkmove(p, pos, (i-(1*c), j-1), [enemy])[0]
+                o += self._checkmove(p, pos, (i-(1*c), j+1), [enemy])[0]
+            case PieceType.RIGHT:
+                #rook-like movement
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i+n,j),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i-n,j),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m, b = self._checkmove(p, pos, (i, j+n), capset)
+                    o += m
+                    if b:
+                        n += 1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m, b = self._checkmove(p, pos, (i, j-n), capset)
+                    o += m
+                    if b:
+                        n += 1
+                    else:
+                        break
+
+                #knightlike movement
+                o +=  self._checkmove(p,pos,(i+1,j+2),capset)[0]
+                o +=  self._checkmove(p,pos,(i+1,j-2),capset)[0]
+                o +=  self._checkmove(p,pos,(i-1,j+2),capset)[0]
+                o +=  self._checkmove(p,pos,(i-1,j-2),capset)[0]
+                o +=  self._checkmove(p,pos,(i+2,j+1),capset)[0]
+                o +=  self._checkmove(p,pos,(i+2,j-1),capset)[0]
+                o +=  self._checkmove(p,pos,(i-2,j+1),capset)[0]
+                o +=  self._checkmove(p,pos,(i-2,j-1),capset)[0]
+            case PieceType.KNIGHT:
+                o +=  self._checkmove(p,pos,(i+1,j+2),capset)[0]
+                o +=  self._checkmove(p,pos,(i+1,j-2),capset)[0]
+                o +=  self._checkmove(p,pos,(i-1,j+2),capset)[0]
+                o +=  self._checkmove(p,pos,(i-1,j-2),capset)[0]
+                o +=  self._checkmove(p,pos,(i+2,j+1),capset)[0]
+                o +=  self._checkmove(p,pos,(i+2,j-1),capset)[0]
+                o +=  self._checkmove(p,pos,(i-2,j+1),capset)[0]
+                o +=  self._checkmove(p,pos,(i-2,j-1),capset)[0]
+            case PieceType.BISHOP:
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i+n,j+n),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i+n,j-n),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i-n,j+n),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i-n,j-n),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+            case PieceType.QUEEN:
+                #rook-like movement
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i+n,j),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i-n,j),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m, b = self._checkmove(p, pos, (i, j+n), capset)
+                    o += m
+                    if b:
+                        n += 1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m, b = self._checkmove(p, pos, (i, j-n), capset)
+                    o += m
+                    if b:
+                        n += 1
+                    else:
+                        break
+
+                #bishop-like movement
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i+n,j+n),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i+n,j-n),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i-n,j+n),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+                n = 1
+                while True:
+                    m,b = self._checkmove(p,pos,(i-n,j-n),capset)
+                    o += m
+                    if b:
+                        n+=1
+                    else:
+                        break
+            case PieceType.KING:
+                o +=  self._checkmove(p,pos,(i+1,j+1),capset)[0]
+                o +=  self._checkmove(p,pos,(i+1,j-1),capset)[0]
+                o +=  self._checkmove(p,pos,(i-1,j+1),capset)[0]
+                o +=  self._checkmove(p,pos,(i-1,j-1),capset)[0]
+                o +=  self._checkmove(p,pos,(i+1,j),capset)[0]
+                o +=  self._checkmove(p,pos,(i,j+1),capset)[0]
+                o +=  self._checkmove(p,pos,(i-1,j),capset)[0]
+                o +=  self._checkmove(p,pos,(i,j-1),capset)[0]
+        return o
+
     def _piecemoves(self) -> [Move]:
         """returns a list of moves formatted like:
         piece, piece position, piece destination, captured piece, promotion"""
@@ -145,205 +343,30 @@ class Board:
         o = []
         for i in range(s):
             for j in range(s):
-                pos=(i,j)
-                p = self.board[i][j]
-                if p.player is not None:
-                    enemy = Player(p.player.enemy())
-                    capset = [None, enemy]
-                match p.piecetype:
-                    case None:
-                        pass
-                    case PieceType.PAWN:
-                        if p.player==Player.WHITE:
-                            c=1
-                        else:
-                            c=-1
-                        o += self._checkmove(p, pos, (i-(1*c), j), [None])[0]
-
-                        o += self._checkmove(p, pos, (i-(1*c), j-1), [enemy])[0]
-                        o += self._checkmove(p, pos, (i-(1*c), j+1), [enemy])[0]
-                    case PieceType.RIGHT:
-                        #rook-like movement
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i+n,j),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i-n,j),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m, b = self._checkmove(p, pos, (i, j+n), capset)
-                            o += m
-                            if b:
-                                n += 1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m, b = self._checkmove(p, pos, (i, j-n), capset)
-                            o += m
-                            if b:
-                                n += 1
-                            else:
-                                break
-
-                        #knightlike movement
-                        o +=  self._checkmove(p,pos,(i+1,j+2),capset)[0]
-                        o +=  self._checkmove(p,pos,(i+1,j-2),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-1,j+2),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-1,j-2),capset)[0]
-                        o +=  self._checkmove(p,pos,(i+2,j+1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i+2,j-1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-2,j+1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-2,j-1),capset)[0]
-                    case PieceType.KNIGHT:
-                        o +=  self._checkmove(p,pos,(i+1,j+2),capset)[0]
-                        o +=  self._checkmove(p,pos,(i+1,j-2),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-1,j+2),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-1,j-2),capset)[0]
-                        o +=  self._checkmove(p,pos,(i+2,j+1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i+2,j-1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-2,j+1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-2,j-1),capset)[0]
-                    case PieceType.BISHOP:
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i+n,j+n),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i+n,j-n),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i-n,j+n),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i-n,j-n),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                    case PieceType.QUEEN:
-                        #rook-like movement
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i+n,j),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i-n,j),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m, b = self._checkmove(p, pos, (i, j+n), capset)
-                            o += m
-                            if b:
-                                n += 1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m, b = self._checkmove(p, pos, (i, j-n), capset)
-                            o += m
-                            if b:
-                                n += 1
-                            else:
-                                break
-
-                        #bishop-like movement
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i+n,j+n),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i+n,j-n),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i-n,j+n),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                        n = 1
-                        while True:
-                            m,b = self._checkmove(p,pos,(i-n,j-n),capset)
-                            o += m
-                            if b:
-                                n+=1
-                            else:
-                                break
-                    case PieceType.KING:
-                        o +=  self._checkmove(p,pos,(i+1,j+1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i+1,j-1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-1,j+1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-1,j-1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i+1,j),capset)[0]
-                        o +=  self._checkmove(p,pos,(i,j+1),capset)[0]
-                        o +=  self._checkmove(p,pos,(i-1,j),capset)[0]
-                        o +=  self._checkmove(p,pos,(i,j-1),capset)[0]
+                o+=self._pospiecemoves((i,j))
 
         return o
 
     def legalplayerpiecemoves(self,player:Player):
         ms = self._playerpiecemoves(player)
-        #fms = list(filter((lambda m : self.copymove(m).check() is None),ms))
-        fms = []
-        for m in ms:
-            b2 = self.copymove(m)
-            c = b2.check()
-            if player not in c:
-                fms += [m]
+        fms = list(filter((lambda m : player not in self.copymove(m).check()),ms))
+        return fms
+
+    def legalpiecemoves(self):
+        ms = self._piecemoves()
+        fms = list(filter((lambda m : m.piece.player not in self.copymove(m).check()),ms))
+        return fms
+
+    def legalpospiecemoves(self, pos:tuple[int,int]):
+        ms = self._pospiecemoves(pos)
+        fms = list(filter((lambda m : m.piece.player not in self.copymove(m).check()),ms))
         return fms
 
     def copymove(self, move:Move):
         y,x = move.position
         dy,dx = move.destination
         b2 = Board()
-        b2.board = copy.deepcopy(board.board)
+        b2.board = copy.deepcopy(self.board)
 
         b2.board[y][x] = Piece(None,None)
         b2.board[dy][dx] = move.piece
@@ -411,35 +434,66 @@ class Board:
 #     tempb, tempp, tempm = copy_piece_move(tempb, piece, move)
 #     tempp.move(tempm)
 #     return colour*evalheuristic(tempb,player),(piece,move)
-def funny_ab_minimax_map(board:Board, player:Player, turn:Player, var,a,b,depth,colour) -> tuple[int,list[Move]]:
+
+class TTableFlag(Enum):
+    EXACT = 0
+    LOWERBOUND = 1
+    UPPERBOUND = 2
+
+class TTableEntry(NamedTuple):
+    value: int
+    pm: Move
+    depth: int
+    flag: TTableFlag
+
+
+def funny_ab_minimax_map(board:Board, player:Player, turn:Player, var,a,b,depth,colour,ttable) -> tuple[int,Move]:
     test = var[5]
+    aInit = a
+    if hash(board) in ttable:
+        e = ttable[hash(board)]
+        if e.depth >= depth:
+            print("ping")
+            if e.flag == TTableFlag.EXACT:
+                return (e.value, e.pm)
+            elif e.flag == TTableFlag.LOWERBOUND and e.value >= b:
+                return (e.value, e.pm)
+            elif e.flag == TTableFlag.UPPERBOUND and e.value <= a:
+                return (e.value, e.pm)
+
+
     legal:list[Move] = board.legalplayerpiecemoves(turn)
-    legal.sort(key=lambda mov : {None:0,PieceType.PAWN:1, PieceType.RIGHT:10, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:15}[mov.capture])
-    next_turn = turn.enemy()
-
     global htime
-
-    #print_board_ascii(board)
-
-    if (legal!=[]) & (depth > 0):
-        chosen_move = None
-        pms = []
-
-
-        for m in legal:
-            val = -math.inf
-            board2 = board.copymove(m)
-            ra, rpms = funny_ab_minimax_map(board2,player,next_turn,var,-b,-a,depth-1, colour*-1)
-            val,chosen_move,pms = max((-ra,m,rpms),(val,chosen_move,pms),key=lambda x : x[0])
-            a = max(a,val)
-            if a>=b or (time.perf_counter() >= var[2] - var[4] and not test):
-                return a,([m]+pms)
-        return a,([chosen_move]+pms)
-    else:
+    next_turn = turn.enemy()
+    if not((legal!=[]) & (depth > 0)):
         t = time.perf_counter()
         eh = colour * evalheuristic(board, player, next_turn)
         htime += time.perf_counter() - t
         return eh, []
+
+    legal.sort(key=lambda mov : {None:0,PieceType.PAWN:1, PieceType.RIGHT:10, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:15}[mov.capture])
+
+
+    chosen_move = None
+    val = -math.inf
+    for m in legal:
+        board2 = board.copymove(m)
+        ra, rpm = funny_ab_minimax_map(board2,player,next_turn,var,-b,-a,depth-1, colour*-1, ttable)
+        val,chosen_move = max((-ra,m),(val,chosen_move),key=lambda x : x[0])
+        a = max(a,val)
+        if a>=b or (time.perf_counter() >= var[2] - var[4] and not test):
+            break
+
+
+    if val <= aInit:
+        f = TTableFlag.UPPERBOUND
+    elif val >= b:
+        f = TTableFlag.LOWERBOUND
+    else:
+        f = TTableFlag.EXACT
+
+    ttable[hash(board)] = TTableEntry(val,chosen_move,depth,f)
+    return val, chosen_move
 
 
 # def captures_for(board,player):
@@ -457,17 +511,22 @@ def funny_ab_minimax_map(board:Board, player:Player, turn:Player, var,a,b,depth,
 def evalheuristic(board:Board,player:Player, turn:Player):
     #consider each player's pieces, their worth, and the pieces each player has in danger. perhaps depth of pawns, promotion??
     #consider forks? amount of possible moves?
-    piecepoints = {PieceType.PAWN:1, PieceType.RIGHT:10, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:15}
+    piecepoints = {PieceType.PAWN:1, PieceType.RIGHT:10, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:15, None:0}
     #right and king approximated in points
     #right does not exist in normal chess
     #king has no point value in normal chess
     #do mess with these if it's bad
-    pawnpospoints = {0:9,1:6,2:3,3:0}
+    pawnpospoints = {(0,Player.WHITE):9,(1,Player.WHITE):6,(2,Player.WHITE):3,(3,Player.WHITE):0,(4,Player.WHITE):0,
+                     (4,Player.BLACK):9,(3,Player.BLACK):6,(2,Player.BLACK):3,(1,Player.BLACK):0,(0,Player.BLACK):0,
+                     (0,None): 0,(1,None): 0,(2,None): 0,(3,None): 0,(4,None): 0,}
+
+
 
     weights = [8,1,2]
     #weights for material, capture options, pawn depth
 
     opponent = player.enemy()
+    scorerdict = {player:1,opponent:-1,None:0}
     score = 0
 
     #endgame status scoring
@@ -482,44 +541,43 @@ def evalheuristic(board:Board,player:Player, turn:Player):
     if opponent in sms and opponent == turn:
         return -500
 
-
-    # ps = board.get_player_pieces(player)
-    # for p in ps:
-    #     score += piecepoints[p.name] * weights[0]
-    #     if p.name == "Pawn":
-    #         score += pawnpospoints[p.position.y] * weights[2]
-    #     for m in p.get_move_options():
-    #         for c in m.captures:
-    #             score += piecepoints[board[c].piece.name] * weights[1]
-    # ops = board.get_player_pieces(opponent)
-    # for p in ops:
-    #     score -= piecepoints[p.name] * weights[0]
-    #     if p.name == "Pawn":
-    #         score -= pawnpospoints[board.size[1]-p.position.y-1] * weights[2]
-    #     for m in p.get_move_options():
-    #         for c in m.captures:
-    #             score -= piecepoints[board[c].piece.name] * weights[1]
+    #scorer lambda
+    board_pos_score = lambda board,y,x : (
+            scorerdict[board[y][x].player]*( #factors in player
+                (piecepoints[board[y][x].piecetype]*weights[0]) + #material
+                ((board[y][x].piecetype==PieceType.PAWN)*pawnpospoints[(y, board[y][x].player)]) + #pawn depth
+                sum((piecepoints[m.capture]) for m in board.legalpospiecemoves((y,x))) * weights[1] #captures
+            )
+    )
 
     #material & pawn depth scoring
-    for y in range(len(board.board)):
-        for x in range(len(board.board)):
-            p = board[y][x]
-            if p.player == player:
-                score += piecepoints[p.piecetype] * weights[0]
-                if p.piecetype == PieceType.PAWN:
-                    score += pawnpospoints[y] * weights[2]
-            elif p.player == opponent:
-                score -= piecepoints[p.piecetype] * weights[0]
-                if p.piecetype == PieceType.PAWN:
-                    score -= pawnpospoints[len(board.board)-y-1] * weights[2]
-            else:
-                pass
+    # for y in range(len(board.board)):
+    #     for x in range(len(board.board)):
+    #         score += board_pos_score(board,y,x)
+    score = (
+    sum(map(lambda y :
+        sum(map(lambda x :
+            board_pos_score(board,y,x)
+            , range(len(board.board))))
+        , range(len(board.board)))))
+
+        # for x in range(len(board.board)):
+        #     p = board[y][x]
+        #     if p.player == player:
+        #         score += piecepoints[p.piecetype] * weights[0]
+        #         if p.piecetype == PieceType.PAWN:
+        #             score += pawnpospoints[y] * weights[2]
+        #     elif p.player == opponent:
+        #         score -= piecepoints[p.piecetype] * weights[0]
+        #         if p.piecetype == PieceType.PAWN:
+        #             score -= pawnpospoints[len(board.board)-y-1] * weights[2]
+        #     else:
+        #         pass
     #capture scoring
     # (!) is it worth keeping something this lightly weighted that takes this long? removing it takes the eval's time from ~80% to ~60%
-    # for cm in filter(lambda m : m.capture is not None,board.legalplayerpiecemoves(player)):
-    #     score += piecepoints[cm.capture] * weights[1]
-    # for cm in filter(lambda m : m.capture is not None,board.legalplayerpiecemoves(opponent)):
-    #     score -= piecepoints[cm.capture] * weights[1]
+    #
+    # for cm in filter(lambda m : m.capture is not None,board.legalpiecemoves()):
+    #     score += piecepoints[cm.capture] * weights[1] * scorerdict[cm.piece.player]
 
 
 
@@ -539,36 +597,27 @@ if __name__ == '__main__':
     print(board)
     legals = board.legalplayerpiecemoves(Player.WHITE)
     #for l in legals: print(l)
+    print("hash",hash(board))
+    print("hash",hash(board))
     print("num of initial moves:",len(legals))
     starttime = time.perf_counter()
-    d = 5
+    d = 4
     print("depth:",d)
     starttime = time.perf_counter()
 
     global htime
     htime = 0
-
-    h, pms = funny_ab_minimax_map(board, Player.WHITE, Player.WHITE, [d, 14, time.perf_counter()+14,d,0.5,test], -math.inf, math.inf, d, 1)
+    tt = {}
+    h, pm = funny_ab_minimax_map(board, Player.WHITE, Player.WHITE, [d, 14, time.perf_counter()+14,d,0.5,test], -math.inf, math.inf, d, 1, tt)
 
     print("----- done -----")
     print("depth:", d)
+    print("tt size:", len(tt))
     ttime = time.perf_counter() - starttime
-    print(h, ", ".join([str(pm) for pm in pms]))
-    print("thinking time:", ttime)
-    print("time in heuristic:", htime)
-    print("                  ", str(100*htime/ttime)[0:5]+'%')
-    print("time elsewhere:   ", ttime-htime)
-    print("                  ", str(100*(ttime-htime)/ttime)[0:5]+'%')
-
-
-#all on hellsample
-#NO PAWN DEPTH
-#depth 3
-#value 12
-#18.13, 7.62, 19.43, 10.58, 11.42, 13.92, 7.37, 8.36, 18.76, 11.47
-
-#WITH PAWN DEPTH
-#depth 3
-#value 17
-#7.46, 10.94, 20.33, 9.42, 11.93, 18.34, 17.32, 14.04,
+    print(h, ",", pm)
+    print("thinking time:", round(ttime,2))
+    print("time in heuristic:", round(htime,2))
+    print("                  ", round(100*htime/ttime,2),"%")
+    print("time elsewhere:   ", round(ttime-htime,2))
+    print("                  ", round(100*(ttime-htime)/ttime,2),"%")
 
