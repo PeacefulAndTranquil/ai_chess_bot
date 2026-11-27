@@ -7,7 +7,6 @@ from extension.board_rules import get_result, thinking_with_timeout, THINKING_TI
 from samples import white, black, sample0, sample1
 from agent import agent
 from opponent import opponent
-import winsound
 
 def make_custom_board(board_sample):
     # player1: white vs player2: black
@@ -88,5 +87,3 @@ def testgame_timeout(p_white, p_black, board_sample):
 
 if __name__ == "__main__":
     testgame_timeout(p_white=agent, p_black=opponent, board_sample=sample0)
-    winsound.Beep(2500,500)
-    winsound.Beep(5000, 250)
