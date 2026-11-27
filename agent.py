@@ -2,14 +2,11 @@ import math
 import random
 import time
 from enum import Enum, IntEnum
-import multiprocessing as mp
 from random import shuffle
 import copy
 from typing import NamedTuple
-
 from chessmaker.chess.base import MoveOption as cmMoveOption, Piece as cmPiece, Square as cmSquare, Board as cmBoard, Position as cmPosition
-from extension.board_utils import list_legal_moves_for, take_notes, copy_piece_move
-import chessmaker
+from extension.board_utils import take_notes
 def agent(board:cmBoard, player, var):
     """"
     This is an example of your designed Agent
