@@ -538,7 +538,7 @@ def funny_ab_minimax_map(board:Board, player:Player, turn:Player, var,a,b,depth,
 def evalheuristic(board:Board,player:Player, turn:Player):
     #consider each player's pieces, their worth, and the pieces each player has in danger. perhaps depth of pawns, promotion??
     #consider forks? amount of possible moves?
-    piecepoints = {PieceType.PAWN:1, PieceType.RIGHT:15, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:20, None:0}
+    piecepoints = {PieceType.PAWN:1, PieceType.RIGHT:9, PieceType.KNIGHT:3, PieceType.BISHOP:3, PieceType.QUEEN:9, PieceType.KING:12, None:0}
     #right and king approximated in points
     #right does not exist in normal chess
     #king has no point value in normal chess
@@ -549,7 +549,7 @@ def evalheuristic(board:Board,player:Player, turn:Player):
 
 
 
-    weights = [10,3,5]
+    weights = [5,3,3]
     #weights for material, capture options, pawn depth
 
     opponent = player.enemy()
