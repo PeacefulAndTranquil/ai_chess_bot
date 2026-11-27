@@ -125,6 +125,14 @@ def string2board(s):
         s=s.replace(",P", ",Square(Pawn_Q(white))")
         return s
 
+fuck = [
+[Square(),Square(King(black)),Square(),Square(Bishop(black)),Square(Right(black))],
+[Square(),Square(),Square(),Square(Pawn_Q(white)),Square()],
+[Square(Knight(black)),Square(),Square(),Square(),Square()],
+[Square(),Square(),Square(Pawn_Q(black)),Square(),Square()],
+[Square(Queen(black)),Square(Bishop(white)),Square(King(white)),Square(),Square()]
+]
+
 if __name__ == "__main__":
         print("wow")
         b = Board(hellsample, [white,black], cycle([white,black]))
@@ -133,10 +141,10 @@ if __name__ == "__main__":
         for p in ps:
                 print(p)
         funny = ("[\n"
-                 "[o,q,k,o,o],\n"
-                 "[p,p,Q,o,o],\n"
-                 "[P,o,o,Q,r],\n"
-                 "[B,K,o,o,P],\n"
-                 "[o,o,o,o,N]\n"
+                 "[o,k,o,b,r],\n"
+                 "[o,o,o,P,o],\n"
+                 "[n,o,o,o,o],\n"
+                 "[o,o,p,o,o],\n"
+                 "[q,B,K,o,o]\n"
                  "]")
         print(string2board(funny))
