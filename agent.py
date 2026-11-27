@@ -42,7 +42,7 @@ def agent(board:cmBoard, player, var):
 
     #test
     s = time.perf_counter()
-    depth = 4
+    depth = 3
     panicmargin = 0.1
     test = False
     customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin,test]
@@ -564,7 +564,7 @@ def evalheuristic(board:Board,player:Player, turn:Player):
             scorerdict[board[y][x].player]*( #factors in player
                 (piecepoints[board[y][x].piecetype]*weights[0]) #material
                 + ((board[y][x].piecetype==PieceType.PAWN)*pawnpospoints[(y, board[y][x].player)]) #pawn depth
-                #+ sum((piecepoints[m.capture]) for m in board.legalpospiecemoves((y,x))) * weights[1] #captures
+                + sum((piecepoints[m.capture]) for m in board.legalpospiecemoves((y,x))) * weights[1] #captures
             )
     )
 
