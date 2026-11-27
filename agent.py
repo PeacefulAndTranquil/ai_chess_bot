@@ -53,7 +53,6 @@ def agent(board:cmBoard, player, var):
                 customboard.board[y][x] = Piece(piecetypeconvert[pt],playerconvert[pl])
     #print(customboard)
     customplayer = playerconvert[player.name]
-    tt={}
     depth = 2
     abm = (-math.inf, Move(None,None,None,None,None))
     customvar = [var[0],var[1],time.perf_counter()+var[1],depth,panicmargin,test]
@@ -62,7 +61,8 @@ def agent(board:cmBoard, player, var):
     while time.perf_counter() <= customvar[2] - customvar[4] and abm[0] < pettinessthreshold:
         depth+=1
         customvar[3] = depth
-        tbm = funny_ab_minimax_map(customboard,customplayer,customplayer,customvar,-math.inf,math.inf,depth,1,{})
+        tt={}
+        tbm = funny_ab_minimax_map(customboard,customplayer,customplayer,customvar,-math.inf,math.inf,depth,1,tt)
         abm = max(tbm,abm,key=lambda x : x[0])
 
 
