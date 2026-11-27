@@ -564,7 +564,7 @@ def evalheuristic(board:Board,player:Player, turn:Player):
             scorerdict[board[y][x].player]*( #factors in player
                 (piecepoints[board[y][x].piecetype]*weights[0]) #material
                 + ((board[y][x].piecetype==PieceType.PAWN)*pawnpospoints[(y, board[y][x].player)]) #pawn depth
-                + sum((piecepoints[m.capture]) for m in board.legalpospiecemoves((y,x))) * weights[1] #captures
+                + sum((piecepoints[m.capture] + (pawnpospoints((m.destination[0], board[m.destination[0]][m.destination[1]].player)) if m.capture==PieceType.PAWN else 0)) for m in board.legalpospiecemoves((y,x))) * weights[1] #captures
             )
     )
 
